@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF--8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeBin Client</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+    <style>
+        /* Simple style to make status messages more prominent */
+        #status-message {
+            margin-top: 1em;
+            padding: 0.75em;
+            border-radius: var(--border-radius);
+            font-weight: bold;
+        }
+        #status-message.success {
+            color: var(--pico-color-green-500);
+            background-color: var(--pico-color-green-100);
+            border: 1px solid var(--pico-color-green-200);
+        }
+        #status-message.error {
+            color: var(--pico-color-red-500);
+            background-color: var(--pico-color-red-100);
+            border: 1px solid var(--pico-color-red-200);
+        }
+    </style>
+</head>
+<body>
+
+    <main class="container">
+        <header>
+            <h1>CodeBin</h1>
+            <p>A simple client for sharing code snippets.</p>
+        </header>
+
+        <hr>
+
+        <section id="auth-section">
+            <div class="grid">
+                <article>
+                    <hgroup>
+                        <h2>Register</h2>
+                        <h3>Create a new account</h3>
+                    </hgroup>
+                    <form id="register-form">
+                        <label for="reg-name">Name</label>
+                        <input type="text" id="reg-name" name="name" placeholder="Your Name" required>
+                        <label for="reg-email">Email Address</label>
+                        <input type="email" id="reg-email" name="email" placeholder="email@example.com" required autocomplete="email">
+                        <label for="reg-password">Password</label>
+                        <input type="password" id="reg-password" name="password" placeholder="Password" required autocomplete="new-password">
+                        <button type="submit">Register</button>
+                    </form>
+                </article>
+
+                <article>
+                    <hgroup>
+                        <h2>Login</h2>
+                        <h3>Access your account</h3>
+                    </hgroup>
+                    <form id="login-form">
+                        <label for="login-email">Email Address</label>
+                        <input type="email" id="login-email" name="email" placeholder="email@example.com" required autocomplete="email">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" name="password" placeholder="Password" required autocomplete="current-password">
+                        <button type="submit">Login</button>
+                    </form>
+                </article>
+            </div>
+        </section>
+
+        <section id="user-section" hidden>
+             <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2 id="welcome-message">Welcome!</h2>
+                <button id="logout-button" class="secondary" style="margin-bottom: 0;">Logout</button>
+            </div>
+        </section>
+
+        <section id="create-snippet-section" hidden>
+            <article>
+                <hgroup>
+                    <h2>Create a New Snippet</h2>
+                    <h3>Share your code with the world</h3>
+                </hgroup>
+                <form id="create-snippet-form">
+                    <label for="snippet-title">Title</label>
+                    <input type="text" id="snippet-title" name="title" placeholder="Snippet Title" required>
+                    <label for="snippet-content">Content</label>
+                    <textarea id="snippet-content" name="content" rows="10" placeholder="Paste your code here..." required></textarea>
+                    <button type="submit">Create Snippet</button>
+                </form>
+            </article>
+        </section>
+        
+        <hr>
+
+        <p id="status-message"></p>
+
+        <h2>Latest Snippets</h2>
+        <section id="snippets-container">
+            </section>
+    
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- STATE & CONSTANTS ---
+            const API_BASE_URL = 'http://localhost:4000';
+            let authToken = null; // In-memory token storage, reset on page refresh.
+
+            // --- DOM ELEMENT REFERENCES ---
+            const authSection = document.getElementById('auth-section');
+            const userSection = document.getElementById('user-section');
+            const createSnippetSection = document.getElementById('create-snippet-section');
+            const statusMessage = document.getElementById('status-message');
+            const snippetsContainer = document.getElementById('snippets-container');
+            
+            const registerForm = document.getElementById('register-form');
+            const loginForm = document.getElementById('login-form');
+            const createSnippetForm = document.getElementById('create-snippet-form');
+            const logoutButton = document.getElementById('logout-button');
+            const welcomeMessage = document.getElementById('welcome-message');
+
+            // --- UI UPDATE LOGIC ---
+
+            /**
+             * Updates the visibility of UI sections based on the authentication state.
+             */
+            const updateUI = () => {
+                if (authToken) {
+                    authSection.hidden = true;
+                    userSection.hidden = false;
+                    createSnippetSection.hidden = false;
+                } else {
+                    authSection.hidden = false;
+                    userSection.hidden = true;
+                    createSnippetSection.hidden = true;
+                }
+            };
+
+            /**
+             * Displays a status message to the user.
+             * @param {string} message - The message to display.
+             * @param {boolean} isError - If true, styles the message as an error.
+             */
+            const displayStatus = (message, isError = false) => {
+                statusMessage.textContent = message;
+                statusMessage.className = isError ? 'error' : 'success';
+                statusMessage.hidden = false;
+                
+                // Hide the message after 5 seconds
+                setTimeout(() => {
+                    statusMessage.textContent = '';
+                    statusMessage.hidden = true;
+                }, 5000);
+            };
+
+            // --- API & DATA HANDLING LOGIC ---
+            
+            /**
+             * Fetches the latest snippets from the API and renders them to the page.
+             */
+            const fetchAndRenderSnippets = async () => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/snippets`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    const snippets = await response.json();
+
+                    // Clear existing snippets
+                    snippetsContainer.innerHTML = '';
+                    
+                    if (!snippets || snippets.length === 0) {
+                        snippetsContainer.innerHTML = '<p>No snippets found.</p>';
+                        return;
+                    }
+
+                    // Render each snippet
+                    snippets.forEach(snippet => {
+                        const article = document.createElement('article');
+                        
+                        const createdDate = new Date(snippet.created_at).toLocaleString();
+
+                        article.innerHTML = `
+                            <h4>${escapeHTML(snippet.title)}</h4>
+                            <pre><code>${escapeHTML(snippet.content)}</code></pre>
+                            <footer><small>Created on: ${createdDate}</small></footer>
+                        `;
+                        snippetsContainer.appendChild(article);
+                    });
+
+                } catch (error) {
+                    console.error('Failed to fetch snippets:', error);
+                    displayStatus('Error: Could not load snippets from the server.', true);
+                }
+            };
+            
+            /**
+             * Simple utility to escape HTML to prevent XSS.
+             * @param {string} str - The string to escape.
+             * @returns {string} The escaped string.
+             */
+            const escapeHTML = (str) => {
+                const p = document.createElement("p");
+                p.appendChild(document.createTextNode(str));
+                return p.innerHTML;
+            };
+
+            // --- EVENT HANDLERS ---
+            
+            /**
+             * Handles the registration form submission.
+             */
+            const handleRegister = async (event) => {
+                event.preventDefault();
+                const formData = new FormData(registerForm);
+                const data = Object.fromEntries(formData.entries());
+
+                try {
+                    const response = await fetch(`${API_BASE_URL}/users`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data),
+                    });
+
+                    if (response.status !== 201) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || `HTTP error! Status: ${response.status}`);
+                    }
+                    
+                    displayStatus('Registration successful! You can now log in.', false);
+                    registerForm.reset();
+
+                } catch (error) {
+                    console.error('Registration failed:', error);
+                    displayStatus(`Registration failed: ${error.message}`, true);
+                }
+            };
+
+            /**
+             * Handles the login form submission.
+             */
+            const handleLogin = async (event) => {
+                event.preventDefault();
+                const formData = new FormData(loginForm);
+                const data = Object.fromEntries(formData.entries());
+
+                try {
+                    const response = await fetch(`${API_BASE_URL}/tokens/authentication`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data),
+                    });
+
+                    if (!response.ok) {
+                         const errorData = await response.json();
+                        throw new Error(errorData.error || `HTTP error! Status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    authToken = result.token; // Store token in memory
+
+                    // Get user's email from the form to display in welcome message
+                    welcomeMessage.textContent = `Welcome, ${escapeHTML(data.email)}!`;
+                    
+                    loginForm.reset();
+                    displayStatus('Login successful!', false);
+                    updateUI(); // Switch to authenticated view
+
+                } catch (error) {
+                    console.error('Login failed:', error);
+                    displayStatus(`Login failed: ${error.message}`, true);
+                }
+            };
+            
+            /**
+             * Handles the logout button click.
+             */
+            const handleLogout = () => {
+                authToken = null; // Clear the token
+                displayStatus('You have been logged out.', false);
+                updateUI(); // Revert to public view
+            };
+
+            /**
+             * Handles the create snippet form submission.
+             */
+            const handleCreateSnippet = async (event) => {
+                event.preventDefault();
+                if (!authToken) {
+                    displayStatus('You must be logged in to create a snippet.', true);
+                    return;
+                }
+                
+                const formData = new FormData(createSnippetForm);
+                const data = Object.fromEntries(formData.entries());
+
+                try {
+                    const response = await fetch(`${API_BASE_URL}/snippets`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`, // Include auth token
+                        },
+                        body: JSON.stringify(data),
+                    });
+
+                    if (response.status !== 201) {
+                         const errorData = await response.json();
+                        throw new Error(errorData.error || `HTTP error! Status: ${response.status}`);
+                    }
+
+                    displayStatus('Snippet created successfully!', false);
+                    createSnippetForm.reset();
+                    await fetchAndRenderSnippets(); // Refresh the list
+
+                } catch (error) {
+                    console.error('Failed to create snippet:', error);
+                    displayStatus(`Failed to create snippet: ${error.message}`, true);
+                }
+            };
+
+
+            // --- INITIALIZATION ---
+            
+            // Attach event listeners
+            registerForm.addEventListener('submit', handleRegister);
+            loginForm.addEventListener('submit', handleLogin);
+            logoutButton.addEventListener('click', handleLogout);
+            createSnippetForm.addEventListener('submit', handleCreateSnippet);
+
+            // Initial UI setup and data fetch
+            updateUI();
+            fetchAndRenderSnippets();
+        });
+    </script>
+</body>
+</html>

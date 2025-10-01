@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict DAgP1ye0e3TsK4yzw5FyyBAsA3OmsfYtQKw3HRpUowZIAjOaeTIVIQ4Dqd9cvi2
+\restrict CcXFev2E4ezJN8NRmet9WyVktUQZXEl9oHHRSkXilmeJX0XWEprkdjgWxWnZbfn
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.6
@@ -129,5 +129,5 @@ CREATE INDEX snippets_created_at_idx ON public.snippets USING btree (created_at 
 -- PostgreSQL database dump complete
 --
 
-\unrestrict DAgP1ye0e3TsK4yzw5FyyBAsA3OmsfYtQKw3HRpUowZIAjOaeTIVIQ4Dqd9cvi2
+\unrestrict CcXFev2E4ezJN8NRmet9WyVktUQZXEl9oHHRSkXilmeJX0XWEprkdjgWxWnZbfn
 

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"time"
-
+	"log"
 	"github.com/aakash-1857/codebin/internal/models"
 	"github.com/go-chi/chi/v5"
 	"github.com/golang-jwt/jwt/v5"
@@ -55,34 +55,48 @@ func (app *application) snippetView(w http.ResponseWriter,r *http.Request){
 	}
 
 }
-func (app *application) snippetCreate(w http.ResponseWriter,r *http.Request){
+// REPLACE your existing snippetCreate function with this one.
+func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
+	// This function will now print loud, simple messages to your terminal.
+	log.Println("--- ENTERED snippetCreate HANDLER ---")
+
 	var input struct {
-		Title string `json:"title"`
+		Title   string `json:"title"`
 		Content string `json:"content"`
 	}
-	err:=json.NewDecoder(r.Body).Decode(&input)
-	if err!=nil{
-		app.serverErrorResponse(w,r,err)
+
+	err := json.NewDecoder(r.Body).Decode(&input)
+	if err != nil {
+		log.Printf("!!! HANDLER FAILED at JSON Decode: %v", err)
+		app.badRequestResponse(w, r, err)
 		return
 	}
-	if input.Title == "" || input.Content == "" {
-		app.serverErrorResponse(w,r,err)
+	log.Println("--- SUCCESS: JSON Decoded Successfully ---")
+
+	log.Println("--- CALLING app.snippets.Insert ---")
+	id, err := app.snippets.Insert(input.Title, input.Content)
+	if err != nil {
+		// If there is an error here, this is the message we need to see.
+		log.Printf("!!! HANDLER FAILED at Repository Insert: %v", err)
+		app.serverErrorResponse(w, r, err)
 		return
 	}
-	id,err:=app.snippets.Insert(input.Title,input.Content)
-	if err!=nil{
-		app.serverErrorResponse(w,r,err)
+	log.Printf("--- SUCCESS: Repository Inserted. New ID is %s ---", id)
+
+	snippet, err := app.snippets.Get(id)
+	if err != nil {
+		log.Printf("!!! HANDLER FAILED at Repository Get: %v", err)
+		app.serverErrorResponse(w, r, err)
 		return
 	}
-	snippet,err:=app.snippets.Get(id)
-	if err!=nil{
-		app.serverErrorResponse(w,r,err)
-		return
+	log.Println("--- SUCCESS: Fetched new snippet ---")
+
+	err = app.writeJSON(w, http.StatusCreated, snippet, nil)
+	if err != nil {
+		log.Printf("!!! HANDLER FAILED at Final JSON Write: %v", err)
+		app.serverErrorResponse(w, r, err)
 	}
-	err = app.writeJSON(w,http.StatusCreated,snippet,nil)
-	if err!=nil{
-		app.serverErrorResponse(w,r,err)
-	}
+	log.Println("--- HANDLER FINISHED SUCCESSFULLY ---")
 }
 func (app *application) snippetLatest(w http.ResponseWriter,r *http.Request){
 	snippets,err:=app.snippets.Latest()

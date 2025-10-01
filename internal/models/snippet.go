@@ -5,10 +5,12 @@ import (
 	"time"
 )
 var ErrNoRecord=errors.New("models:no matching record found")
-type Snippet struct{
-	ID string
-	Title string
-	Content string
-	CreatedAt time.Time
-	ExpiresAt time.Time
+// In internal/models/snippet.go
+
+type Snippet struct {
+    ID        string    `json:"id"`
+    Title     string    `json:"title"`
+    Content   string    `json:"content"`
+    CreatedAt time.Time `json:"created_at"`
+    ExpiresAt time.Time `json:"expires_at"`
 }
