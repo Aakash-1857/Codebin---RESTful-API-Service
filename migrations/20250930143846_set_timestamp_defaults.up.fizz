@@ -1,0 +1,3 @@
+sql("ALTER TABLE snippets ALTER COLUMN created_at SET DEFAULT NOW();")
+sql("ALTER TABLE snippets ALTER COLUMN updated_at SET DEFAULT NOW();")
+sql("ALTER TABLE snippets ALTER COLUMN expires_at SET DEFAULT NOW() + INTERVAL '365 days';")

@@ -1,0 +1,2 @@
+
+sql("CREATE INDEX IF NOT EXISTS snippets_created_at_idx ON snippets (created_at DESC);")

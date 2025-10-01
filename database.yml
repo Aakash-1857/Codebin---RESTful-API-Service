@@ -1,0 +1,4 @@
+# database.yml
+development:
+  dialect: "postgres"
+  url: "postgres://postgres:%23ME%40postgres@127.0.0.1:5432/codebin?sslmode=disable"

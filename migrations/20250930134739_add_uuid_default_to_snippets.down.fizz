@@ -1,0 +1,1 @@
+sql("ALTER TABLE snippets ALTER COLUMN id DROP DEFAULT;")

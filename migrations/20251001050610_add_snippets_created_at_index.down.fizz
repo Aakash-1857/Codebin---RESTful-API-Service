@@ -1,0 +1,2 @@
+
+sql("DROP INDEX IF EXISTS snippets_created_at_idx;")

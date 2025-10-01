@@ -1,0 +1,5 @@
+
+sql("CREATE EXTENSION IF NOT EXISTS \"pgcrypto\";")
+
+
+sql("ALTER TABLE snippets ALTER COLUMN id SET DEFAULT gen_random_uuid();")

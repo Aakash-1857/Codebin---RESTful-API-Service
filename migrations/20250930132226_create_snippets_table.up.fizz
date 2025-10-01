@@ -1,0 +1,7 @@
+create_table("snippets") {
+  t.Column("id", "uuid", {"primary": true})
+  t.Column("title", "string", {"size": 100})
+  t.Column("content", "text", {})
+  t.Column("created_at", "timestamp", {})
+  t.Column("expires_at", "timestamp", {})
+}
