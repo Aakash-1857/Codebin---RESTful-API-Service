@@ -1,6 +1,6 @@
 # CodeBin
 
-A production-ready RESTful API service for creating and sharing code snippets, built with Go and PostgreSQL. Live Demo UI [https://codebin-restful-api-service.onrender.com/](https://codebin-restful-api-service.onrender.com/)
+A production-ready RESTful API service for creating and sharing code snippets, built with Go and PostgreSQL. [Live Demo UI](https://codebin-restful-api-service.onrender.com/)
 
 ## Overview
 
