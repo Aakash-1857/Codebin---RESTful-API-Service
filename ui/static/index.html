@@ -9,6 +9,27 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
     
     <style>
+        .top {
+            display: flex;
+            flex-direction: row;      /* put items side by side */
+            justify-content: space-between; /* push them apart */
+            align-items: center;      /* vertical alignment */
+        }
+
+        .git-link {
+            align-self: auto;  /* reset — not needed anymore */
+        }
+
+        .git-link span a{
+            text-decoration: underline;
+            color:aquamarine;
+        }
+        .git-link span a:hover{
+            font-weight: bold;
+            color: aquamarine;
+            text-shadow: 0 0 4px rgba(127, 255, 212, 0.6),
+                 0 0 8px rgba(127, 255, 212, 0.4);
+        }
         /* Custom styles for status messages */
         #status-message {
             padding: 1rem;
@@ -71,21 +92,27 @@
             display: inline-block;
             margin-bottom: 1rem;
         }
+        
     </style>
 </head>
 <body>
     <main class="container">
-        <header>
-            <h1>CodeBin</h1>
-            <p>Share and discover code snippets</p>
-        </header>
+        <div class="top">
+            <header>
+                <h1>CodeBin</h1>
+                <p></p>
+            </header>
+            <div class="git-link">
+                <h5>Check out the API on <span><a href="https://github.com/Aakash-1857/Codebin---RESTful-API-Service">github</a></span></h5>
+            </div>
+        </div>
         
         <!-- Status message element for displaying success/error messages -->
         <p id="status-message" hidden></p>
         
         <!-- Authentication Section - visible when user is NOT logged in -->
         <section id="auth-section">
-            <h2>Welcome to CodeBin</h2>
+            <h3>Welcome to CodeBin - a demo interface powered by the CodeBin API</h3>
             <div class="grid">
                 <!-- Registration Form -->
                 <div>
