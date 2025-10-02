@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF--8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CodeBin Client</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
     <style>
-        /* Simple style to make status messages more prominent */
         #status-message {
             margin-top: 1em;
             padding: 0.75em;
@@ -23,6 +22,7 @@
             background-color: var(--pico-color-red-100);
             border: 1px solid var(--pico-color-red-200);
         }
+        pre { white-space: pre-wrap; }
     </style>
 </head>
 <body>
@@ -96,9 +96,15 @@
 
         <p id="status-message"></p>
 
-        <h2>Latest Snippets</h2>
-        <section id="snippets-container">
-            </section>
+        <div id="main-content">
+            <div id="list-view">
+                <h2>Latest Snippets</h2>
+                <section id="snippets-container"></section>
+            </div>
+
+            <div id="detail-view" hidden>
+                </div>
+        </div>
     
     </main>
 
@@ -107,7 +113,7 @@
 
             // --- STATE & CONSTANTS ---
             const API_BASE_URL = 'https://codebin-api-10we.onrender.com';
-            let authToken = null; // In-memory token storage, reset on page refresh.
+            let authToken = null; // In-memory token storage
 
             // --- DOM ELEMENT REFERENCES ---
             const authSection = document.getElementById('auth-section');
@@ -122,11 +128,12 @@
             const logoutButton = document.getElementById('logout-button');
             const welcomeMessage = document.getElementById('welcome-message');
 
+            // --- ADDED: DOM references for view toggling ---
+            const listView = document.getElementById('list-view');
+            const detailView = document.getElementById('detail-view');
+
             // --- UI UPDATE LOGIC ---
 
-            /**
-             * Updates the visibility of UI sections based on the authentication state.
-             */
             const updateUI = () => {
                 if (authToken) {
                     authSection.hidden = true;
@@ -139,37 +146,41 @@
                 }
             };
 
-            /**
-             * Displays a status message to the user.
-             * @param {string} message - The message to display.
-             * @param {boolean} isError - If true, styles the message as an error.
-             */
             const displayStatus = (message, isError = false) => {
                 statusMessage.textContent = message;
                 statusMessage.className = isError ? 'error' : 'success';
                 statusMessage.hidden = false;
                 
-                // Hide the message after 5 seconds
                 setTimeout(() => {
                     statusMessage.textContent = '';
                     statusMessage.hidden = true;
                 }, 5000);
             };
 
+            // --- ADDED: Functions to toggle between list and detail views ---
+            const showListView = () => {
+                detailView.hidden = true;
+                listView.hidden = false;
+            };
+
+            const showDetailView = () => {
+                listView.hidden = true;
+                detailView.hidden = false;
+            };
+
             // --- API & DATA HANDLING LOGIC ---
             
-            /**
-             * Fetches the latest snippets from the API and renders them to the page.
-             */
             const fetchAndRenderSnippets = async () => {
                 try {
+                    // When showing the list, always make sure the correct view is visible
+                    showListView(); 
+                    snippetsContainer.innerHTML = '<p aria-busy="true">Loading...</p>';
+
                     const response = await fetch(`${API_BASE_URL}/snippets`);
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
                     }
                     const snippets = await response.json();
-
-                    // Clear existing snippets
                     snippetsContainer.innerHTML = '';
                     
                     if (!snippets || snippets.length === 0) {
@@ -177,16 +188,20 @@
                         return;
                     }
 
-                    // Render each snippet
                     snippets.forEach(snippet => {
                         const article = document.createElement('article');
-                        
                         const createdDate = new Date(snippet.created_at).toLocaleString();
 
+                        // MODIFIED: Added snippet ID and a "View" button
                         article.innerHTML = `
-                            <h4>${escapeHTML(snippet.title)}</h4>
-                            <pre><code>${escapeHTML(snippet.content)}</code></pre>
-                            <footer><small>Created on: ${createdDate}</small></footer>
+                            <hgroup>
+                                <h4>${escapeHTML(snippet.title || 'Untitled')}</h4>
+                                <h6>ID: <code>${snippet.id}</code></h6>
+                            </hgroup>
+                            <footer>
+                                <small>Created on: ${createdDate}</small>
+                                <button class="outline" style="float: right;" onclick="viewSnippet('${snippet.id}')">View</button>
+                            </footer>
                         `;
                         snippetsContainer.appendChild(article);
                     });
@@ -196,13 +211,37 @@
                     displayStatus('Error: Could not load snippets from the server.', true);
                 }
             };
+
+            // --- ADDED: New function to fetch and display a single snippet ---
+            window.viewSnippet = async (id) => {
+                showDetailView();
+                detailView.innerHTML = '<p aria-busy="true">Loading snippet...</p>';
+                try {
+                    const response = await fetch(`${API_BASE_URL}/snippets/${id}`);
+                    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                    const snippet = await response.json();
+
+                    detailView.innerHTML = `
+                        <article>
+                            <header>
+                                <button class="secondary" onclick="fetchAndRenderSnippets()">← Back to List</button>
+                                <h2>${escapeHTML(snippet.title || 'Untitled')}</h2>
+                            </header>
+                            <pre><code>${escapeHTML(snippet.content)}</code></pre>
+                            <footer>
+                                <small>ID: <code>${snippet.id}</code></small><br>
+                                <small>Created: ${new Date(snippet.created_at).toLocaleString()}</small>
+                            </footer>
+                        </article>
+                    `;
+                } catch (error) {
+                    console.error(`Failed to fetch snippet ${id}:`, error);
+                    detailView.innerHTML = `<p>Error loading snippet. <button onclick="fetchAndRenderSnippets()">Back to List</button></p>`;
+                }
+            };
             
-            /**
-             * Simple utility to escape HTML to prevent XSS.
-             * @param {string} str - The string to escape.
-             * @returns {string} The escaped string.
-             */
             const escapeHTML = (str) => {
+                if (!str) return ""; // Handle null or undefined strings
                 const p = document.createElement("p");
                 p.appendChild(document.createTextNode(str));
                 return p.innerHTML;
@@ -210,9 +249,6 @@
 
             // --- EVENT HANDLERS ---
             
-            /**
-             * Handles the registration form submission.
-             */
             const handleRegister = async (event) => {
                 event.preventDefault();
                 const formData = new FormData(registerForm);
@@ -239,9 +275,6 @@
                 }
             };
 
-            /**
-             * Handles the login form submission.
-             */
             const handleLogin = async (event) => {
                 event.preventDefault();
                 const formData = new FormData(loginForm);
@@ -260,14 +293,13 @@
                     }
 
                     const result = await response.json();
-                    authToken = result.token; // Store token in memory
+                    authToken = result.token;
 
-                    // Get user's email from the form to display in welcome message
                     welcomeMessage.textContent = `Welcome, ${escapeHTML(data.email)}!`;
                     
                     loginForm.reset();
                     displayStatus('Login successful!', false);
-                    updateUI(); // Switch to authenticated view
+                    updateUI();
 
                 } catch (error) {
                     console.error('Login failed:', error);
@@ -275,18 +307,12 @@
                 }
             };
             
-            /**
-             * Handles the logout button click.
-             */
             const handleLogout = () => {
-                authToken = null; // Clear the token
+                authToken = null;
                 displayStatus('You have been logged out.', false);
-                updateUI(); // Revert to public view
+                updateUI();
             };
 
-            /**
-             * Handles the create snippet form submission.
-             */
             const handleCreateSnippet = async (event) => {
                 event.preventDefault();
                 if (!authToken) {
@@ -302,7 +328,7 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${authToken}`, // Include auth token
+                            'Authorization': `Bearer ${authToken}`,
                         },
                         body: JSON.stringify(data),
                     });
@@ -314,7 +340,7 @@
 
                     displayStatus('Snippet created successfully!', false);
                     createSnippetForm.reset();
-                    await fetchAndRenderSnippets(); // Refresh the list
+                    await fetchAndRenderSnippets();
 
                 } catch (error) {
                     console.error('Failed to create snippet:', error);
@@ -325,13 +351,11 @@
 
             // --- INITIALIZATION ---
             
-            // Attach event listeners
             registerForm.addEventListener('submit', handleRegister);
             loginForm.addEventListener('submit', handleLogin);
             logoutButton.addEventListener('click', handleLogout);
             createSnippetForm.addEventListener('submit', handleCreateSnippet);
 
-            // Initial UI setup and data fetch
             updateUI();
             fetchAndRenderSnippets();
         });
