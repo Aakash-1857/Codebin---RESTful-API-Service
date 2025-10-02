@@ -47,11 +47,22 @@ func main() {
 	// --- CONFIGURATION ---
 	// All settings are now read from command-line flags.
 	// This makes the application flexible and easy to deploy.
-	flag.IntVar(&cfg.port, "port", 4000, "API server port")
-	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
-	flag.StringVar(&cfg.db.dsn, "db-dsn", "", "PostgreSQL DSN")
-	flag.StringVar(&cfg.jwt.secret, "jwt-secret", "your-super-secret-key", "JWT secret")
-	flag.Parse()
+    // Define the flags for local development.
+    flag.IntVar(&cfg.port, "port", 4000, "API server port")
+    flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
+    flag.StringVar(&cfg.db.dsn, "db-dsn", "", "PostgreSQL DSN") // We'll get this from a flag OR an env var.
+    flag.StringVar(&cfg.jwt.secret, "jwt-secret", "your-super-secret-key", "JWT secret")
+    flag.Parse()
+
+    // --- NEW AND CORRECT LOGIC ---
+    // Read the DATABASE_URL from the Render environment.
+    envDSN := os.Getenv("DATABASE_URL")
+    if envDSN != "" {
+        // If it exists, use it and override any -db-dsn flag.
+        // This makes the code work perfectly on Render.
+        cfg.db.dsn = envDSN
+    }
+
 
 	// --- LOGGER ---
 	// A structured logger for machine-readable logs.

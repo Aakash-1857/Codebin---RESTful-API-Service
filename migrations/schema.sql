@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict FA97u7QqrMyd240OFwn2YVLjnoMShSfSuJ4zSUkNbBTd3LPDc6x7Pj8Cg7M83vf
+\restrict DX1Y7laNwSDAxMs9ySSt3GNuwuycleuTUOydlayyiTYdtBQYJ9riQOgIg00qDhw
 
 -- Dumped from database version 17.6 (Debian 17.6-1.pgdg12+1)
 -- Dumped by pg_dump version 17.6
@@ -418,5 +418,5 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres GRANT ALL ON TABLES TO codebin_postgr
 -- PostgreSQL database dump complete
 --
 
-\unrestrict FA97u7QqrMyd240OFwn2YVLjnoMShSfSuJ4zSUkNbBTd3LPDc6x7Pj8Cg7M83vf
+\unrestrict DX1Y7laNwSDAxMs9ySSt3GNuwuycleuTUOydlayyiTYdtBQYJ9riQOgIg00qDhw
 
