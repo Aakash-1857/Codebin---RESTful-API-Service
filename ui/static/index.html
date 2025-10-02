@@ -23,6 +23,7 @@
             border: 1px solid var(--pico-color-red-200);
         }
         pre { white-space: pre-wrap; }
+        button.outline { float: right; }
     </style>
 </head>
 <body>
@@ -38,10 +39,7 @@
         <section id="auth-section">
             <div class="grid">
                 <article>
-                    <hgroup>
-                        <h2>Register</h2>
-                        <h3>Create a new account</h3>
-                    </hgroup>
+                    <hgroup><h2>Register</h2><h3>Create a new account</h3></hgroup>
                     <form id="register-form">
                         <label for="reg-name">Name</label>
                         <input type="text" id="reg-name" name="name" placeholder="Your Name" required>
@@ -52,12 +50,8 @@
                         <button type="submit">Register</button>
                     </form>
                 </article>
-
                 <article>
-                    <hgroup>
-                        <h2>Login</h2>
-                        <h3>Access your account</h3>
-                    </hgroup>
+                    <hgroup><h2>Login</h2><h3>Access your account</h3></hgroup>
                     <form id="login-form">
                         <label for="login-email">Email Address</label>
                         <input type="email" id="login-email" name="email" placeholder="email@example.com" required autocomplete="email">
@@ -68,20 +62,15 @@
                 </article>
             </div>
         </section>
-
         <section id="user-section" hidden>
              <div style="display: flex; justify-content: space-between; align-items: center;">
                 <h2 id="welcome-message">Welcome!</h2>
                 <button id="logout-button" class="secondary" style="margin-bottom: 0;">Logout</button>
             </div>
         </section>
-
         <section id="create-snippet-section" hidden>
             <article>
-                <hgroup>
-                    <h2>Create a New Snippet</h2>
-                    <h3>Share your code with the world</h3>
-                </hgroup>
+                <hgroup><h2>Create a New Snippet</h2><h3>Share your code with the world</h3></hgroup>
                 <form id="create-snippet-form">
                     <label for="snippet-title">Title</label>
                     <input type="text" id="snippet-title" name="title" placeholder="Snippet Title" required>
@@ -93,7 +82,6 @@
         </section>
         
         <hr>
-
         <p id="status-message"></p>
 
         <div id="main-content">
@@ -101,9 +89,7 @@
                 <h2>Latest Snippets</h2>
                 <section id="snippets-container"></section>
             </div>
-
-            <div id="detail-view" hidden>
-                </div>
+            <div id="detail-view" hidden></div>
         </div>
     
     </main>
@@ -111,53 +97,25 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
 
-            // --- STATE & CONSTANTS ---
             const API_BASE_URL = 'https://codebin-api-10we.onrender.com';
-            let authToken = null; // In-memory token storage
+            let authToken = null;
 
-            // --- DOM ELEMENT REFERENCES ---
             const authSection = document.getElementById('auth-section');
             const userSection = document.getElementById('user-section');
             const createSnippetSection = document.getElementById('create-snippet-section');
             const statusMessage = document.getElementById('status-message');
             const snippetsContainer = document.getElementById('snippets-container');
-            
             const registerForm = document.getElementById('register-form');
             const loginForm = document.getElementById('login-form');
             const createSnippetForm = document.getElementById('create-snippet-form');
             const logoutButton = document.getElementById('logout-button');
             const welcomeMessage = document.getElementById('welcome-message');
-
-            // --- ADDED: DOM references for view toggling ---
             const listView = document.getElementById('list-view');
             const detailView = document.getElementById('detail-view');
 
-            // --- UI UPDATE LOGIC ---
-
-            const updateUI = () => {
-                if (authToken) {
-                    authSection.hidden = true;
-                    userSection.hidden = false;
-                    createSnippetSection.hidden = false;
-                } else {
-                    authSection.hidden = false;
-                    userSection.hidden = true;
-                    createSnippetSection.hidden = true;
-                }
-            };
-
-            const displayStatus = (message, isError = false) => {
-                statusMessage.textContent = message;
-                statusMessage.className = isError ? 'error' : 'success';
-                statusMessage.hidden = false;
-                
-                setTimeout(() => {
-                    statusMessage.textContent = '';
-                    statusMessage.hidden = true;
-                }, 5000);
-            };
-
-            // --- ADDED: Functions to toggle between list and detail views ---
+            const updateUI = () => { /* ... Unchanged ... */ };
+            const displayStatus = (message, isError = false) => { /* ... Unchanged ... */ };
+            
             const showListView = () => {
                 detailView.hidden = true;
                 listView.hidden = false;
@@ -168,11 +126,9 @@
                 detailView.hidden = false;
             };
 
-            // --- API & DATA HANDLING LOGIC ---
-            
-            const fetchAndRenderSnippets = async () => {
+            // MODIFIED: Attach to window to make it globally accessible from onclick attributes
+            window.fetchAndRenderSnippets = async () => {
                 try {
-                    // When showing the list, always make sure the correct view is visible
                     showListView(); 
                     snippetsContainer.innerHTML = '<p aria-busy="true">Loading...</p>';
 
@@ -192,7 +148,6 @@
                         const article = document.createElement('article');
                         const createdDate = new Date(snippet.created_at).toLocaleString();
 
-                        // MODIFIED: Added snippet ID and a "View" button
                         article.innerHTML = `
                             <hgroup>
                                 <h4>${escapeHTML(snippet.title || 'Untitled')}</h4>
@@ -200,7 +155,7 @@
                             </hgroup>
                             <footer>
                                 <small>Created on: ${createdDate}</small>
-                                <button class="outline" style="float: right;" onclick="viewSnippet('${snippet.id}')">View</button>
+                                <button class="outline" onclick="viewSnippet('${snippet.id}')">View</button>
                             </footer>
                         `;
                         snippetsContainer.appendChild(article);
@@ -211,8 +166,8 @@
                     displayStatus('Error: Could not load snippets from the server.', true);
                 }
             };
-
-            // --- ADDED: New function to fetch and display a single snippet ---
+            
+            // MODIFIED: Attach to window to make it globally accessible from onclick attributes
             window.viewSnippet = async (id) => {
                 showDetailView();
                 detailView.innerHTML = '<p aria-busy="true">Loading snippet...</p>';
@@ -224,7 +179,7 @@
                     detailView.innerHTML = `
                         <article>
                             <header>
-                                <button class="secondary" onclick="fetchAndRenderSnippets()">← Back to List</button>
+                                <button class="secondary" onclick="window.fetchAndRenderSnippets()">← Back to List</button>
                                 <h2>${escapeHTML(snippet.title || 'Untitled')}</h2>
                             </header>
                             <pre><code>${escapeHTML(snippet.content)}</code></pre>
@@ -236,128 +191,71 @@
                     `;
                 } catch (error) {
                     console.error(`Failed to fetch snippet ${id}:`, error);
-                    detailView.innerHTML = `<p>Error loading snippet. <button onclick="fetchAndRenderSnippets()">Back to List</button></p>`;
+                    detailView.innerHTML = `<p>Error loading snippet. <button onclick="window.fetchAndRenderSnippets()">Back to List</button></p>`;
                 }
             };
             
-            const escapeHTML = (str) => {
-                if (!str) return ""; // Handle null or undefined strings
+            const escapeHTML = (str) => { /* ... Unchanged ... */ };
+            const handleRegister = async (event) => { /* ... Unchanged ... */ };
+            const handleLogin = async (event) => { /* ... Unchanged ... */ };
+            const handleLogout = () => { /* ... Unchanged ... */ };
+            const handleCreateSnippet = async (event) => { /* ... Unchanged ... */ };
+            
+            // --- Copying unchanged functions for completeness ---
+            updateUI = () => {
+                if (authToken) {
+                    authSection.hidden = true; userSection.hidden = false; createSnippetSection.hidden = false;
+                } else {
+                    authSection.hidden = false; userSection.hidden = true; createSnippetSection.hidden = true;
+                }
+            };
+            displayStatus = (message, isError = false) => {
+                statusMessage.textContent = message; statusMessage.className = isError ? 'error' : 'success'; statusMessage.hidden = false;
+                setTimeout(() => { statusMessage.textContent = ''; statusMessage.hidden = true; }, 5000);
+            };
+            escapeHTML = (str) => {
+                if (!str) return "";
                 const p = document.createElement("p");
                 p.appendChild(document.createTextNode(str));
                 return p.innerHTML;
             };
-
-            // --- EVENT HANDLERS ---
-            
-            const handleRegister = async (event) => {
-                event.preventDefault();
-                const formData = new FormData(registerForm);
-                const data = Object.fromEntries(formData.entries());
-
+            handleRegister = async (event) => {
+                event.preventDefault(); const formData = new FormData(registerForm); const data = Object.fromEntries(formData.entries());
                 try {
-                    const response = await fetch(`${API_BASE_URL}/users`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(data),
-                    });
-
-                    if (response.status !== 201) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || `HTTP error! Status: ${response.status}`);
-                    }
-                    
-                    displayStatus('Registration successful! You can now log in.', false);
-                    registerForm.reset();
-
-                } catch (error) {
-                    console.error('Registration failed:', error);
-                    displayStatus(`Registration failed: ${error.message}`, true);
-                }
+                    const response = await fetch(`${API_BASE_URL}/users`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+                    if (response.status !== 201) { const errorData = await response.json(); throw new Error(errorData.error || `HTTP error! Status: ${response.status}`); }
+                    displayStatus('Registration successful! You can now log in.', false); registerForm.reset();
+                } catch (error) { console.error('Registration failed:', error); displayStatus(`Registration failed: ${error.message}`, true); }
             };
-
-            const handleLogin = async (event) => {
-                event.preventDefault();
-                const formData = new FormData(loginForm);
-                const data = Object.fromEntries(formData.entries());
-
+            handleLogin = async (event) => {
+                event.preventDefault(); const formData = new FormData(loginForm); const data = Object.fromEntries(formData.entries());
                 try {
-                    const response = await fetch(`${API_BASE_URL}/tokens/authentication`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(data),
-                    });
-
-                    if (!response.ok) {
-                         const errorData = await response.json();
-                        throw new Error(errorData.error || `HTTP error! Status: ${response.status}`);
-                    }
-
-                    const result = await response.json();
-                    authToken = result.token;
-
+                    const response = await fetch(`${API_BASE_URL}/tokens/authentication`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+                    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.error || `HTTP error! Status: ${response.status}`); }
+                    const result = await response.json(); authToken = result.token;
                     welcomeMessage.textContent = `Welcome, ${escapeHTML(data.email)}!`;
-                    
-                    loginForm.reset();
-                    displayStatus('Login successful!', false);
-                    updateUI();
-
-                } catch (error) {
-                    console.error('Login failed:', error);
-                    displayStatus(`Login failed: ${error.message}`, true);
-                }
+                    loginForm.reset(); displayStatus('Login successful!', false); updateUI();
+                } catch (error) { console.error('Login failed:', error); displayStatus(`Login failed: ${error.message}`, true); }
             };
-            
-            const handleLogout = () => {
-                authToken = null;
-                displayStatus('You have been logged out.', false);
-                updateUI();
-            };
-
-            const handleCreateSnippet = async (event) => {
-                event.preventDefault();
-                if (!authToken) {
-                    displayStatus('You must be logged in to create a snippet.', true);
-                    return;
-                }
-                
-                const formData = new FormData(createSnippetForm);
-                const data = Object.fromEntries(formData.entries());
-
+            handleLogout = () => { authToken = null; displayStatus('You have been logged out.', false); updateUI(); };
+            handleCreateSnippet = async (event) => {
+                event.preventDefault(); if (!authToken) { displayStatus('You must be logged in to create a snippet.', true); return; }
+                const formData = new FormData(createSnippetForm); const data = Object.fromEntries(formData.entries());
                 try {
-                    const response = await fetch(`${API_BASE_URL}/snippets`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${authToken}`,
-                        },
-                        body: JSON.stringify(data),
-                    });
-
-                    if (response.status !== 201) {
-                         const errorData = await response.json();
-                        throw new Error(errorData.error || `HTTP error! Status: ${response.status}`);
-                    }
-
-                    displayStatus('Snippet created successfully!', false);
-                    createSnippetForm.reset();
-                    await fetchAndRenderSnippets();
-
-                } catch (error) {
-                    console.error('Failed to create snippet:', error);
-                    displayStatus(`Failed to create snippet: ${error.message}`, true);
-                }
+                    const response = await fetch(`${API_BASE_URL}/snippets`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` }, body: JSON.stringify(data) });
+                    if (response.status !== 201) { const errorData = await response.json(); throw new Error(errorData.error || `HTTP error! Status: ${response.status}`); }
+                    displayStatus('Snippet created successfully!', false); createSnippetForm.reset(); await window.fetchAndRenderSnippets();
+                } catch (error) { console.error('Failed to create snippet:', error); displayStatus(`Failed to create snippet: ${error.message}`, true); }
             };
-
 
             // --- INITIALIZATION ---
-            
             registerForm.addEventListener('submit', handleRegister);
             loginForm.addEventListener('submit', handleLogin);
             logoutButton.addEventListener('click', handleLogout);
             createSnippetForm.addEventListener('submit', handleCreateSnippet);
 
             updateUI();
-            fetchAndRenderSnippets();
+            window.fetchAndRenderSnippets(); // Initial data fetch
         });
     </script>
 </body>
