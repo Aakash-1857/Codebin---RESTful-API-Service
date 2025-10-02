@@ -3,109 +3,633 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CodeBin Client</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+    <title>CodeBin - Share Code Snippets</title>
+    
+    <!-- Pico.css v2 CDN for modern, classless styling -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    
     <style>
-        body { padding-bottom: 5rem; }
-        main { padding-top: 2rem; }
-        pre { white-space: pre-wrap; background: #f4f4f4; padding: 1rem; border-radius: 5px; }
+        /* Custom styles for status messages */
+        #status-message {
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0.25rem;
+            font-weight: 500;
+        }
+        
+        #status-message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        #status-message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        /* Snippet card styling */
+        .snippet-card {
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border: 1px solid var(--pico-muted-border-color);
+            border-radius: 0.5rem;
+            background-color: var(--pico-card-background-color);
+        }
+        
+        .snippet-card h3 {
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+        }
+        
+        .snippet-card pre {
+            background-color: var(--pico-code-background-color);
+            padding: 1rem;
+            border-radius: 0.25rem;
+            overflow-x: auto;
+            max-height: 200px;
+        }
+        
+        .snippet-meta {
+            font-size: 0.875rem;
+            color: var(--pico-muted-color);
+            margin-top: 0.5rem;
+        }
+        
+        /* Detail view styling */
+        #detail-view pre {
+            background-color: var(--pico-code-background-color);
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
     </style>
 </head>
 <body>
-
     <main class="container">
-        <div id="content-container">
-             </div>
+        <header>
+            <h1>CodeBin</h1>
+            <p>Share and discover code snippets</p>
+        </header>
+        
+        <!-- Status message element for displaying success/error messages -->
+        <p id="status-message" hidden></p>
+        
+        <!-- Authentication Section - visible when user is NOT logged in -->
+        <section id="auth-section">
+            <h2>Welcome to CodeBin</h2>
+            <div class="grid">
+                <!-- Registration Form -->
+                <div>
+                    <h3>Register</h3>
+                    <form id="register-form">
+                        <label for="register-name">
+                            Name
+                            <input type="text" id="register-name" name="name" required>
+                        </label>
+                        <label for="register-email">
+                            Email
+                            <input type="email" id="register-email" name="email" required>
+                        </label>
+                        <label for="register-password">
+                            Password
+                            <input type="password" id="register-password" name="password" required minlength="6">
+                        </label>
+                        <button type="submit">Register</button>
+                    </form>
+                </div>
+                
+                <!-- Login Form -->
+                <div>
+                    <h3>Login</h3>
+                    <form id="login-form">
+                        <label for="login-email">
+                            Email
+                            <input type="email" id="login-email" name="email" required>
+                        </label>
+                        <label for="login-password">
+                            Password
+                            <input type="password" id="login-password" name="password" required>
+                        </label>
+                        <button type="submit">Login</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Authenticated User Section - visible when user IS logged in -->
+        <section id="user-section" hidden>
+            <h2 id="welcome-message">Welcome back!</h2>
+            <button id="logout-button">Logout</button>
+        </section>
+        
+        <!-- Create Snippet Section - visible when user IS logged in -->
+        <section id="create-snippet-section" hidden>
+            <h2>Create New Snippet</h2>
+            <form id="create-snippet-form">
+                <label for="snippet-title">
+                    Title
+                    <input type="text" id="snippet-title" name="title" required>
+                </label>
+                <label for="snippet-content">
+                    Code
+                    <textarea id="snippet-content" name="content" rows="10" required></textarea>
+                </label>
+                <button type="submit">Create Snippet</button>
+            </form>
+        </section>
+        
+        <!-- Main Content Area - contains both list and detail views -->
+        <div id="main-content">
+            <!-- List View - shows all snippets -->
+            <div id="list-view">
+                <h2>Latest Snippets</h2>
+                <section id="snippets-container">
+                    <!-- Snippets will be dynamically rendered here -->
+                </section>
+            </div>
+            
+            <!-- Detail View - shows a single snippet -->
+            <div id="detail-view" hidden>
+                <!-- Snippet details will be dynamically rendered here -->
+            </div>
+        </div>
     </main>
 
     <script>
-        const API_BASE_URL = 'https://codebin-api-10we.onrender.com'; // Or your local URL
-        const contentContainer = document.getElementById('content-container');
-
-        // --- TEMPLATES ---
-        // Using template literals for clean HTML generation
-
-        const createListView = (snippets) => {
-            let snippetHTML = '<p>No snippets found.</p>';
-            if (snippets && snippets.length > 0) {
-                snippetHTML = snippets.map(snippet => `
-                    <article>
-                        <hgroup>
-                            <h4>${escapeHTML(snippet.title || 'Untitled')}</h4>
-                            <h6>ID: <code>${snippet.id}</code></h6>
-                        </hgroup>
-                        <footer>
-                            <small>Created on: ${new Date(snippet.created_at).toLocaleString()}</small>
-                            <a href="/?view=${snippet.id}" role="button" class="outline" style="float: right;">View</a>
-                        </footer>
-                    </article>
-                `).join('');
+        // ========================================
+        // CONFIGURATION & GLOBAL STATE
+        // ========================================
+        
+        const API_BASE_URL = 'https://codebin-api-10we.onrender.com';
+        
+        // Authentication token - stored in memory only (not localStorage/sessionStorage)
+        let authToken = null;
+        
+        // Current user information
+        let currentUser = null;
+        
+        // ========================================
+        // DOM ELEMENT REFERENCES
+        // ========================================
+        
+        // Get references to all key DOM elements
+        const statusMessage = document.getElementById('status-message');
+        const authSection = document.getElementById('auth-section');
+        const userSection = document.getElementById('user-section');
+        const createSnippetSection = document.getElementById('create-snippet-section');
+        const welcomeMessage = document.getElementById('welcome-message');
+        const listView = document.getElementById('list-view');
+        const detailView = document.getElementById('detail-view');
+        const snippetsContainer = document.getElementById('snippets-container');
+        
+        // Forms
+        const registerForm = document.getElementById('register-form');
+        const loginForm = document.getElementById('login-form');
+        const logoutButton = document.getElementById('logout-button');
+        const createSnippetForm = document.getElementById('create-snippet-form');
+        
+        // ========================================
+        // UTILITY FUNCTIONS
+        // ========================================
+        
+        /**
+         * Display a status message to the user
+         * @param {string} message - The message to display
+         * @param {string} type - The type of message ('success' or 'error')
+         */
+        function showMessage(message, type = 'success') {
+            statusMessage.textContent = message;
+            statusMessage.className = type;
+            statusMessage.hidden = false;
+            
+            // Auto-hide the message after 5 seconds
+            setTimeout(() => {
+                statusMessage.hidden = true;
+            }, 5000);
+        }
+        
+        /**
+         * Hide the status message
+         */
+        function hideMessage() {
+            statusMessage.hidden = true;
+        }
+        
+        /**
+         * Format a date string into a readable format
+         * @param {string} dateString - ISO date string
+         * @returns {string} Formatted date
+         */
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        
+        // ========================================
+        // UI STATE MANAGEMENT
+        // ========================================
+        
+        /**
+         * Update the UI based on authentication state
+         * Shows/hides sections based on whether user is logged in
+         */
+        function updateUI() {
+            if (authToken) {
+                // User is authenticated - show authenticated sections
+                authSection.hidden = true;
+                userSection.hidden = false;
+                createSnippetSection.hidden = false;
+                
+                // Update welcome message if we have user info
+                if (currentUser && currentUser.name) {
+                    welcomeMessage.textContent = `Welcome back, ${currentUser.name}!`;
+                }
+            } else {
+                // User is not authenticated - show auth forms
+                authSection.hidden = false;
+                userSection.hidden = true;
+                createSnippetSection.hidden = true;
             }
-            contentContainer.innerHTML = `
-                <hgroup>
-                    <h1>CodeBin</h1>
-                    <h2>Latest Snippets</h2>
-                </hgroup>
-                ${snippetHTML}
-            `;
-        };
-
-        const createDetailView = (snippet) => {
-            contentContainer.innerHTML = `
+        }
+        
+        // ========================================
+        // ROUTING LOGIC
+        // ========================================
+        
+        /**
+         * Router function - handles URL-based routing
+         * Checks for ?view=<id> parameter and routes accordingly
+         */
+        function router() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const viewParam = urlParams.get('view');
+            
+            if (viewParam) {
+                // Route to detail view for specific snippet
+                viewSnippet(viewParam);
+            } else {
+                // Route to main list view
+                listView.hidden = false;
+                detailView.hidden = true;
+                fetchAndRenderSnippets();
+            }
+        }
+        
+        // ========================================
+        // API COMMUNICATION FUNCTIONS
+        // ========================================
+        
+        /**
+         * Fetch all snippets and render them in the list view
+         */
+        async function fetchAndRenderSnippets() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/snippets`);
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch snippets: ${response.statusText}`);
+                }
+                
+                const snippets = await response.json();
+                renderSnippetsList(snippets);
+            } catch (error) {
+                console.error('Error fetching snippets:', error);
+                showMessage('Failed to load snippets. Please try again.', 'error');
+            }
+        }
+        
+        /**
+         * Fetch and display a single snippet
+         * @param {string} id - The snippet ID
+         */
+        async function viewSnippet(id) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/snippets/${id}`);
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch snippet: ${response.statusText}`);
+                }
+                
+                const snippet = await response.json();
+                renderSnippetDetail(snippet);
+                
+                // Switch to detail view
+                listView.hidden = true;
+                detailView.hidden = false;
+            } catch (error) {
+                console.error('Error fetching snippet:', error);
+                showMessage('Failed to load snippet. Please try again.', 'error');
+                
+                // Return to list view on error
+                window.history.pushState({}, '', '/');
+                listView.hidden = false;
+                detailView.hidden = true;
+                fetchAndRenderSnippets();
+            }
+        }
+        
+        // ========================================
+        // RENDERING FUNCTIONS
+        // ========================================
+        
+        /**
+         * Render the list of snippets
+         * @param {Array} snippets - Array of snippet objects
+         */
+        function renderSnippetsList(snippets) {
+            if (!snippets || snippets.length === 0) {
+                snippetsContainer.innerHTML = '<p>No snippets yet. Be the first to create one!</p>';
+                return;
+            }
+            
+            // Build HTML for all snippets
+            const snippetsHTML = snippets.map(snippet => {
+                // Truncate content for preview (first 100 characters)
+                const preview = snippet.content.length > 100 
+                    ? snippet.content.substring(0, 100) + '...' 
+                    : snippet.content;
+                
+                return `
+                    <article class="snippet-card">
+                        <h3>${escapeHtml(snippet.title)}</h3>
+                        <pre><code>${escapeHtml(preview)}</code></pre>
+                        <div class="snippet-meta">
+                            Created: ${formatDate(snippet.created_at)}
+                        </div>
+                        <a href="/?view=${snippet.id}" onclick="handleViewClick(event, '${snippet.id}')">View Full Snippet</a>
+                    </article>
+                `;
+            }).join('');
+            
+            snippetsContainer.innerHTML = snippetsHTML;
+        }
+        
+        /**
+         * Render a single snippet in detail view
+         * @param {Object} snippet - The snippet object
+         */
+        function renderSnippetDetail(snippet) {
+            detailView.innerHTML = `
+                <a href="/" onclick="handleBackClick(event)" class="back-link">← Back to List</a>
                 <article>
-                    <header>
-                        <a href="/" role="button" class="secondary">← Back to List</a>
-                        <h2>${escapeHTML(snippet.title || 'Untitled')}</h2>
-                    </header>
-                    <pre><code>${escapeHTML(snippet.content)}</code></pre>
-                    <footer>
-                        <small>ID: <code>${snippet.id}</code></small><br>
-                        <small>Created: ${new Date(snippet.created_at).toLocaleString()}</small>
-                    </footer>
+                    <h2>${escapeHtml(snippet.title)}</h2>
+                    <div class="snippet-meta">
+                        Created: ${formatDate(snippet.created_at)}
+                    </div>
+                    <h3>Code:</h3>
+                    <pre><code>${escapeHtml(snippet.content)}</code></pre>
                 </article>
             `;
-        };
+        }
         
-        // --- API & ROUTING LOGIC ---
-
-        const router = async () => {
-            contentContainer.innerHTML = '<p aria-busy="true">Loading...</p>';
+        /**
+         * Escape HTML to prevent XSS attacks
+         * @param {string} text - The text to escape
+         * @returns {string} Escaped text
+         */
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // ========================================
+        // NAVIGATION HANDLERS
+        // ========================================
+        
+        /**
+         * Handle clicking on a snippet link
+         * @param {Event} event - The click event
+         * @param {string} id - The snippet ID
+         */
+        function handleViewClick(event, id) {
+            event.preventDefault();
+            window.history.pushState({}, '', `/?view=${id}`);
+            viewSnippet(id);
+        }
+        
+        /**
+         * Handle clicking the back link
+         * @param {Event} event - The click event
+         */
+        function handleBackClick(event) {
+            event.preventDefault();
+            window.history.pushState({}, '', '/');
+            listView.hidden = false;
+            detailView.hidden = true;
+            fetchAndRenderSnippets();
+        }
+        
+        // ========================================
+        // AUTHENTICATION HANDLERS
+        // ========================================
+        
+        /**
+         * Handle user registration
+         * @param {Event} event - The form submit event
+         */
+        async function handleRegister(event) {
+            event.preventDefault();
+            hideMessage();
             
-            // MODIFIED: This is the new routing logic
-            const urlParams = new URLSearchParams(window.location.search);
-            const snippetIdToView = urlParams.get('view');
-
+            const formData = new FormData(registerForm);
+            const data = {
+                name: formData.get('name'),
+                email: formData.get('email'),
+                password: formData.get('password')
+            };
+            
             try {
-                if (snippetIdToView) {
-                    // If a "view" param exists, fetch and display that single snippet
-                    const response = await fetch(`${API_BASE_URL}/snippets/${snippetIdToView}`);
-                    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-                    const snippet = await response.json();
-                    createDetailView(snippet);
-                } else {
-                    // Otherwise, fetch and display the list of latest snippets
-                    const response = await fetch(`${API_BASE_URL}/snippets`);
-                    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-                    const snippets = await response.json();
-                    createListView(snippets);
+                const response = await fetch(`${API_BASE_URL}/users`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Registration failed');
                 }
+                
+                showMessage('Registration successful! Please log in.', 'success');
+                registerForm.reset();
             } catch (error) {
-                console.error('Failed to load content:', error);
-                contentContainer.innerHTML = '<h2>Error</h2><p>Could not load content from the server. Please try again.</p><a href="/" role="button">Go Home</a>';
+                console.error('Registration error:', error);
+                showMessage(error.message || 'Registration failed. Please try again.', 'error');
             }
-        };
-
-        const escapeHTML = (str) => {
-            if (!str) return "";
-            const p = document.createElement("p");
-            p.appendChild(document.createTextNode(str));
-            return p.innerHTML;
-        };
-
-        // --- INITIALIZATION ---
+        }
         
-        // Run the router when the page loads
-        document.addEventListener('DOMContentLoaded', router);
+        /**
+         * Handle user login
+         * @param {Event} event - The form submit event
+         */
+        async function handleLogin(event) {
+            event.preventDefault();
+            hideMessage();
+            
+            const formData = new FormData(loginForm);
+            const data = {
+                email: formData.get('email'),
+                password: formData.get('password')
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/tokens/authentication`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Login failed');
+                }
+                
+                const responseData = await response.json();
+                
+                // Store the authentication token in memory
+                authToken = responseData.token;
+                
+                // Store user info if provided
+                if (responseData.user) {
+                    currentUser = responseData.user;
+                }
+                
+                showMessage('Login successful!', 'success');
+                loginForm.reset();
+                
+                // Update UI to show authenticated sections
+                updateUI();
+            } catch (error) {
+                console.error('Login error:', error);
+                showMessage(error.message || 'Login failed. Please check your credentials.', 'error');
+            }
+        }
+        
+        /**
+         * Handle user logout
+         */
+        function handleLogout() {
+            // Clear the authentication token and user info
+            authToken = null;
+            currentUser = null;
+            
+            // Update UI to show auth forms
+            updateUI();
+            
+            showMessage('You have been logged out.', 'success');
+        }
+        
+        // ========================================
+        // SNIPPET CREATION HANDLER
+        // ========================================
+        
+        /**
+         * Handle creating a new snippet
+         * @param {Event} event - The form submit event
+         */
+        async function handleCreateSnippet(event) {
+            event.preventDefault();
+            hideMessage();
+            
+            if (!authToken) {
+                showMessage('You must be logged in to create a snippet.', 'error');
+                return;
+            }
+            
+            const formData = new FormData(createSnippetForm);
+            const data = {
+                title: formData.get('title'),
+                content: formData.get('content')
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/snippets`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to create snippet');
+                }
+                
+                const snippet = await response.json();
+                
+                showMessage('Snippet created successfully!', 'success');
+                createSnippetForm.reset();
+                
+                // Refresh the snippets list
+                await fetchAndRenderSnippets();
+                
+                // Scroll to the snippets list
+                snippetsContainer.scrollIntoView({ behavior: 'smooth' });
+            } catch (error) {
+                console.error('Create snippet error:', error);
+                showMessage(error.message || 'Failed to create snippet. Please try again.', 'error');
+            }
+        }
+        
+        // ========================================
+        // EVENT LISTENERS
+        // ========================================
+        
+        /**
+         * Initialize event listeners when DOM is ready
+         */
+        function initializeEventListeners() {
+            // Authentication form handlers
+            registerForm.addEventListener('submit', handleRegister);
+            loginForm.addEventListener('submit', handleLogin);
+            logoutButton.addEventListener('click', handleLogout);
+            
+            // Snippet creation handler
+            createSnippetForm.addEventListener('submit', handleCreateSnippet);
+            
+            // Handle browser back/forward buttons
+            window.addEventListener('popstate', router);
+        }
+        
+        // ========================================
+        // APPLICATION INITIALIZATION
+        // ========================================
+        
+        /**
+         * Initialize the application when DOM is ready
+         */
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set up event listeners
+            initializeEventListeners();
+            
+            // Update UI based on initial auth state
+            updateUI();
+            
+            // Run the router to determine initial view
+            router();
+        });
     </script>
 </body>
 </html>
