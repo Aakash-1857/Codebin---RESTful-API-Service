@@ -213,7 +213,7 @@ go run ./cmd/api -port=8080 -env=production -db-dsn="postgres://user:pass@localh
 
 ## Author
 
-Your Name - [Aakash Gupta](mailto:akh.kashi.g@protonmail.com)
+[Aakash Gupta](mailto:akh.kashi.g@protonmail.com)
 
 ## Acknowledgments
 
